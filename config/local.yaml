@@ -1,0 +1,8 @@
+# Add to .gitignore
+
+env: "local" #dev, prod
+storage_path: "./storage/sso.db"
+token_ttl: 24h
+grpc:
+  port: 50051
+  timeout: 20h
