@@ -1,0 +1,12 @@
+# Taskfile to run migrations
+
+version: "3"
+
+tasks:
+  migrate:
+    cmds:
+      - go run ./cmd/migrator --storage-path ./storage/sso.db --migrations-path ./migrations
+
+  server:
+    cmds:
+      - go run cmd/sso/main.go --config=./config/local.yaml
