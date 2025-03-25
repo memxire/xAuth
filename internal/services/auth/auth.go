@@ -27,11 +27,12 @@ type UserSaver interface {
 		ctx context.Context,
 		email string,
 		passHash []byte,
+		username string,
 	) (uid int64, err error)
 }
 
 type UserProvider interface {
-	User(ctx context.Context, email string) (models.User, error)
+	User(ctx context.Context, email string, username string) (models.User, error)
 	IsAdmin(ctx context.Context, userID int64) (bool, error)
 }
 
@@ -63,7 +64,8 @@ func New(
 	}
 }
 
-// Login checks if user with given credentials exists in the system and returns access token.
+// Login checks if user with given credentials exists in the system and
+// returns access token.
 //
 // If user exists, but password is incorrect, returns error.
 // If user doesn't exist, returns error.
@@ -72,17 +74,19 @@ func (a *Auth) Login(
 	email string,
 	password string,
 	appID int,
+	username string,
 ) (string, error) {
 	const op = "auth.Login"
 
 	log := a.log.With(
 		slog.String("op", op),
 		slog.String("email", email),
+		slog.String("username", username),
 	)
 
 	log.Info("attempting to login user")
 
-	user, err := a.usrProvider.User(ctx, email)
+	user, err := a.usrProvider.User(ctx, email, username)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			a.log.Warn("user not found", sl.Err(err))
@@ -118,18 +122,20 @@ func (a *Auth) Login(
 	return token, nil
 }
 
-// RegisterNewUser registers new user in the system and returns user ID.
+// RegisterNewUser registers new user in the system and returns user ID and username.
 // If user with given username already exists, returns error.
 func (a *Auth) RegisterNewUser(
 	ctx context.Context,
 	email string,
 	password string,
+	username string,
 ) (int64, error) {
 	const op = "auth.RegisterNewUser"
 
 	log := a.log.With(
 		slog.String("op", op),
 		slog.String("email", email),
+		slog.String("username", username),
 	)
 
 	log.Info("registering new user")
@@ -141,7 +147,7 @@ func (a *Auth) RegisterNewUser(
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	id, err := a.usrSaver.SaveUser(ctx, email, passHash)
+	id, err := a.usrSaver.SaveUser(ctx, email, passHash, username)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserExists) {
 			log.Warn("user already exists", sl.Err(err))
@@ -154,7 +160,8 @@ func (a *Auth) RegisterNewUser(
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	log.Info("user registered", slog.Int64("id", id))
+	log.Info("user registered", slog.Int64("id", id),
+		slog.String("username", username))
 
 	return id, nil
 }

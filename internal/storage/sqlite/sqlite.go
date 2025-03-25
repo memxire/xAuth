@@ -30,19 +30,21 @@ func New(storagePath string) (*Storage, error) {
 }
 
 // SaveUser saves user to db.
-func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (int64, error) {
+func (s *Storage) SaveUser(ctx context.Context,
+	email string, passHash []byte, username string) (int64, error) {
 	const op = "storage.sqlite.SaveUser"
 
 	// Request to create a new user
-	stmt, err := s.db.Prepare("INSERT INTO users(email, pass_hash) VALUES(?, ?)")
+	stmt, err := s.db.Prepare("INSERT INTO users(email, pass_hash, username) VALUES(?, ?, ?)")
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
-	res, err := stmt.ExecContext(ctx, email, passHash)
+	res, err := stmt.ExecContext(ctx, email, passHash, username)
 	if err != nil {
 		var sqliteErr sqlite3.Error
-		if errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
+		if errors.As(err, &sqliteErr) &&
+			sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
 			return 0, fmt.Errorf("%s: %w", op, storage.ErrUserExists)
 		}
 
@@ -58,19 +60,20 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 	return id, nil
 }
 
-// User returns user by email
-func (s *Storage) User(ctx context.Context, email string) (models.User, error) {
+// User returns user by email or username
+func (s *Storage) User(ctx context.Context,
+	email string, username string) (models.User, error) {
 	const op = "storage.sqlite.User"
 
-	stmt, err := s.db.Prepare("SELECT id, email, pass_hash FROM users WHERE email = ?")
+	stmt, err := s.db.Prepare("SELECT id, email, pass_hash, username FROM users WHERE email = ? OR username = ?")
 	if err != nil {
 		return models.User{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	row := stmt.QueryRowContext(ctx, email)
+	row := stmt.QueryRowContext(ctx, email, username)
 
 	var user models.User
-	err = row.Scan(&user.ID, &user.Email, &user.PassHash)
+	err = row.Scan(&user.ID, &user.Email, &user.PassHash, &user.Username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.User{}, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)

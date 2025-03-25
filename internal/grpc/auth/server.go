@@ -16,10 +16,12 @@ type Auth interface {
 		email string,
 		password string,
 		appID int,
+		username string,
 	) (token string, err error)
 	RegisterNewUser(ctx context.Context,
 		email string,
 		password string,
+		username string,
 	) (userID int64, err error)
 	IsAdmin(ctx context.Context, userID int64) (bool, error)
 }
@@ -37,6 +39,11 @@ const (
 	emptyValue = 0
 )
 
+// Login logs in user and returns JWT token.
+//
+// If user doesn't exist or password is incorrect, returns error with
+// codes.InvalidArgument code.
+// If internal error occurred, returns error with codes.Internal code.
 func (s *serverAPI) Login(
 	ctx context.Context, req *ssov1.LoginRequest,
 ) (*ssov1.LoginResponse, error) {
@@ -44,13 +51,15 @@ func (s *serverAPI) Login(
 		return nil, err
 	}
 
-	token, err := s.auth.Login(ctx, req.GetEmail(), req.GetPassword(), int(req.GetAddId()))
+	token, err := s.auth.Login(ctx, req.GetEmail(), req.GetPassword(),
+		int(req.GetAppId()), req.GetUsername())
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidCredentials) {
-			return nil, status.Error(codes.InvalidArgument, "invalid email or password")
+			return nil, status.Error(codes.InvalidArgument,
+				"invalid email or password")
 		}
 
-		return nil, status.Error(codes.Internal, "failed to login ")
+		return nil, status.Error(codes.Internal, "failed to login")
 	}
 
 	return &ssov1.LoginResponse{
@@ -58,6 +67,8 @@ func (s *serverAPI) Login(
 	}, nil
 }
 
+// Register registers new user in the system and returns user ID.
+// If user with given username or email already exists, returns error.
 func (s *serverAPI) Register(
 	ctx context.Context, req *ssov1.RegisterRequest,
 ) (*ssov1.RegisterResponse, error) {
@@ -65,7 +76,8 @@ func (s *serverAPI) Register(
 		return nil, err
 	}
 
-	userID, err := s.auth.RegisterNewUser(ctx, req.GetEmail(), req.GetPassword())
+	userID, err := s.auth.RegisterNewUser(ctx, req.GetEmail(), req.GetPassword(),
+		req.GetUsername())
 	if err != nil {
 		if errors.Is(err, auth.ErrUserExists) {
 			return nil, status.Error(codes.AlreadyExists, "user already exists")
@@ -79,6 +91,9 @@ func (s *serverAPI) Register(
 	}, nil
 }
 
+// IsAdmin checks if user is admin.
+//
+// If user doesn't exist, returns error.
 func (s *serverAPI) IsAdmin(
 	ctx context.Context, req *ssov1.IsAdminRequest,
 ) (*ssov1.IsAdminResponse, error) {
@@ -101,15 +116,12 @@ func (s *serverAPI) IsAdmin(
 }
 
 func validateLogin(req *ssov1.LoginRequest) error {
-	if req.GetEmail() == "" {
-		return status.Error(codes.InvalidArgument, "email is required")
-	}
 
 	if req.GetPassword() == "" {
 		return status.Error(codes.InvalidArgument, "password is required")
 	}
 
-	if req.GetAddId() == emptyValue {
+	if req.GetAppId() == emptyValue {
 		return status.Error(codes.InvalidArgument, "app_id is required")
 	}
 
@@ -119,6 +131,10 @@ func validateLogin(req *ssov1.LoginRequest) error {
 func validateRegister(req *ssov1.RegisterRequest) error {
 	if req.GetEmail() == "" {
 		return status.Error(codes.InvalidArgument, "email is required")
+	}
+
+	if req.GetUsername() == "" {
+		return status.Error(codes.InvalidArgument, "username is required")
 	}
 
 	if req.GetPassword() == "" {

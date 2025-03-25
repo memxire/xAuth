@@ -9,7 +9,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/mattn/go-sqlite3 v1.14.24
-	github.com/memxire/protobuf v0.0.2
+	github.com/memxire/protobuf v0.0.4
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/crypto v0.33.0
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa

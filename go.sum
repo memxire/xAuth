@@ -39,8 +39,10 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mattn/go-sqlite3 v1.14.24 h1:tpSp2G2KyMnnQu99ngJ47EIkWVmliIizyZBfPrBWDRM=
 github.com/mattn/go-sqlite3 v1.14.24/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
-github.com/memxire/protobuf v0.0.2 h1:weY7ULtc1JXagO9CLtwkdebP3Cy34Avab8vzFuQzOVM=
-github.com/memxire/protobuf v0.0.2/go.mod h1:6C03zEGNmfvQ7OQJPqzZGCUT+dm4DJbcqbeuwwq2eSA=
+github.com/memxire/protobuf v0.0.3 h1:cb80tTdZYeDO90UHf3XhzvufLgrae4eRA+BcHWw2FYI=
+github.com/memxire/protobuf v0.0.3/go.mod h1:6C03zEGNmfvQ7OQJPqzZGCUT+dm4DJbcqbeuwwq2eSA=
+github.com/memxire/protobuf v0.0.4 h1:PxARZxaANEycOIYhuFKGNudyTCIsMT6KqvkwrIMhtCI=
+github.com/memxire/protobuf v0.0.4/go.mod h1:6C03zEGNmfvQ7OQJPqzZGCUT+dm4DJbcqbeuwwq2eSA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
