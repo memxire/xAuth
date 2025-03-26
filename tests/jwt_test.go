@@ -12,46 +12,53 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestNewToken_HappyPath проверяет корректность создания токена при валидных входных данных.
+// TestNewToken_HappyPath checks whether the token was created correctly
+// given valid input data.
 func TestNewToken_HappyPath(t *testing.T) {
-	// Подготавливаем тестовые данные
+	// Preparing test data
 	user := models.User{
-		ID:    12345,
-		Email: "user@example.com",
+		ID:       1,
+		Email:    "user@example.com",
+		Username: "user",
+		PassHash: []byte("password"),
 	}
 	app := models.App{
-		ID:     1,
+		ID:     12345,
 		Secret: "test-secret",
 	}
 	duration := time.Hour
 
-	// Вызываем функцию создания токена
+	// Call the token creation method
 	tokenString, err := jwtlib.NewToken(user, app, duration)
 	require.NoError(t, err)
 	require.NotEmpty(t, tokenString)
 
-	// Парсим токен с использованием секретного ключа
-	parsedToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+	// Parsing a token using a secret key
+	parsedToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (any,
+		error) {
 		return []byte(app.Secret), nil
 	})
 	require.NoError(t, err)
 
 	claims, ok := parsedToken.Claims.(jwt.MapClaims)
-	require.True(t, ok, "claims должны быть типа jwt.MapClaims")
+	require.True(t, ok, "claims must be of type jwt.MapClaims")
 
-	// Проверяем содержимое claims
+	// Check the claims content
 	assert.Equal(t, float64(user.ID), claims["uid"].(float64))
 	assert.Equal(t, user.Email, claims["email"].(string))
 	assert.Equal(t, float64(app.ID), claims["app_id"].(float64))
+	assert.Equal(t, user.Username, claims["username"].(string))
 
-	// Проверяем время истечения token'а (exp)
+	// Checking the token expiration time (exp)
 	exp := int64(claims["exp"].(float64))
 	expectedExp := time.Now().Add(duration).Unix()
-	// Учитываем небольшую задержку выполнения (delta в 2 секунды)
-	assert.InDelta(t, expectedExp, exp, 2, "Время истечения должно быть близко к now+duration")
+	// Take into account a small delay in execution (delta of 2 seconds)
+	assert.InDelta(t, expectedExp, exp, 2,
+		"The expiration time should be close to now+duration")
 }
 
-// TestNewToken_NegativeDuration проверяет, что при отрицательной длительности exp оказывается в прошлом.
+// TestNewToken_NegativeDuration checks that if duration is negative,
+// exp ends up in the past.
 func TestNewToken_NegativeDuration(t *testing.T) {
 	user := models.User{
 		ID:    12345,
@@ -61,14 +68,15 @@ func TestNewToken_NegativeDuration(t *testing.T) {
 		ID:     1,
 		Secret: "test-secret",
 	}
-	duration := -time.Minute // Отрицательная длительность
+	duration := -time.Minute // Negative duration
 
 	tokenString, err := jwtlib.NewToken(user, app, duration)
 	require.NoError(t, err)
 	require.NotEmpty(t, tokenString)
 
-	// Отключаем валидацию claims, чтобы не получать ошибку "token is expired"
-	parsedToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	// Disable claims validation to avoid the "token is expired" error
+	parsedToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{},
+		error) {
 		return []byte(app.Secret), nil
 	}, jwt.WithoutClaimsValidation())
 	require.NoError(t, err)
@@ -77,10 +85,11 @@ func TestNewToken_NegativeDuration(t *testing.T) {
 	require.True(t, ok)
 
 	exp := int64(claims["exp"].(float64))
-	assert.True(t, exp < time.Now().Unix(), "Время истечения должно быть в прошлом")
+	assert.True(t, exp < time.Now().Unix(),
+		"The expiration time must be in the past")
 }
 
-// TestNewToken_EmptySecret проверяет поведение функции, когда секрет пустой.
+// TestNewToken_EmptySecret tests the function's behavior when the secret is empty.
 func TestNewToken_EmptySecret(t *testing.T) {
 	user := models.User{
 		ID:    12345,
@@ -88,7 +97,7 @@ func TestNewToken_EmptySecret(t *testing.T) {
 	}
 	app := models.App{
 		ID:     1,
-		Secret: "", // пустой секрет
+		Secret: "", // empty secret
 	}
 	duration := time.Hour
 
@@ -96,7 +105,8 @@ func TestNewToken_EmptySecret(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, tokenString)
 
-	parsedToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{},
+		error) {
 		return []byte(app.Secret), nil
 	})
 	require.NoError(t, err)
@@ -104,7 +114,7 @@ func TestNewToken_EmptySecret(t *testing.T) {
 	claims, ok := parsedToken.Claims.(jwt.MapClaims)
 	require.True(t, ok)
 
-	// Проверяем, что даже при пустом секрете в claims сохранены нужные данные
+	// Check that even with an empty secret, the required data is saved in claims
 	assert.Equal(t, float64(user.ID), claims["uid"].(float64))
 	assert.Equal(t, user.Email, claims["email"].(string))
 	assert.Equal(t, float64(app.ID), claims["app_id"].(float64))
