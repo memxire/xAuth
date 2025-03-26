@@ -33,6 +33,7 @@ type UserSaver interface {
 
 type UserProvider interface {
 	User(ctx context.Context, email string, username string) (models.User, error)
+	UserByID(ctx context.Context, userID int64) (models.User, error)
 	IsAdmin(ctx context.Context, userID int64) (bool, error)
 }
 
@@ -164,6 +165,41 @@ func (a *Auth) RegisterNewUser(
 		slog.String("username", username))
 
 	return id, nil
+}
+
+// GetUser returns user by ID.
+// If user doesn't exist, returns error with codes.NotFound code.
+// If internal error occurred, returns error with codes.Internal code.
+func (a *Auth) GetUser(ctx context.Context, userID int64) (models.User, error) {
+	const op = "auth.UserByID"
+
+	log := a.log.With(
+		slog.String("op", op),
+		slog.Int64("userID", userID),
+	)
+
+	log.Info("getting user by id")
+
+	user, err := a.usrProvider.UserByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, storage.ErrUserNotFound) {
+			log.Warn("user not found", sl.Err(err))
+
+			return models.User{}, fmt.Errorf("%s: %w", op, ErrUserNotFound)
+		}
+
+		log.Error("failed to get user by id", sl.Err(err))
+
+		return models.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	log.Info("got user by id",
+		slog.String("email", user.Email),
+		slog.String("username", user.Username),
+		slog.Bool("is_admin", user.IsAdmin),
+	)
+
+	return user, nil
 }
 
 // IsAdmin checks if user is admin.

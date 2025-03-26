@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"xauth/internal/domain/models"
 	"xauth/internal/services/auth"
 
 	ssov1 "github.com/memxire/protobuf/gen/go/sso"
@@ -23,6 +24,7 @@ type Auth interface {
 		password string,
 		username string,
 	) (userID int64, err error)
+	GetUser(ctx context.Context, userID int64) (models.User, error)
 	IsAdmin(ctx context.Context, userID int64) (bool, error)
 }
 
@@ -91,6 +93,31 @@ func (s *serverAPI) Register(
 	}, nil
 }
 
+func (s *serverAPI) GetUser(
+	ctx context.Context, req *ssov1.GetUserRequest,
+) (*ssov1.GetUserResponse, error) {
+	if err := validateUserID(req); err != nil {
+		return nil, err
+	}
+
+	user, err := s.auth.GetUser(ctx, req.GetUserId())
+	if err != nil {
+		if errors.Is(err, auth.ErrInvalidCredentials) {
+			return nil, status.Error(codes.InvalidArgument,
+				"invalid user id")
+		}
+
+		return nil, status.Error(codes.Internal, "failed to get user by id")
+	}
+
+	return &ssov1.GetUserResponse{
+		UserId:   user.ID,
+		Email:    user.Email,
+		Username: user.Username,
+		IsAdmin:  user.IsAdmin,
+	}, nil
+}
+
 // IsAdmin checks if user is admin.
 //
 // If user doesn't exist, returns error.
@@ -139,6 +166,14 @@ func validateRegister(req *ssov1.RegisterRequest) error {
 
 	if req.GetPassword() == "" {
 		return status.Error(codes.InvalidArgument, "password is required")
+	}
+
+	return nil
+}
+
+func validateUserID(req *ssov1.GetUserRequest) error {
+	if req.GetUserId() == emptyValue {
+		return status.Error(codes.InvalidArgument, "user id is required")
 	}
 
 	return nil

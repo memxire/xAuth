@@ -85,6 +85,29 @@ func (s *Storage) User(ctx context.Context,
 	return user, nil
 }
 
+func (s *Storage) UserByID(ctx context.Context, id int64) (models.User, error) {
+	const op = "storage.sqlite.UserByID"
+
+	stmt, err := s.db.Prepare("SELECT id, email, username, is_admin FROM users WHERE id = ?")
+	if err != nil {
+		return models.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	row := stmt.QueryRowContext(ctx, id)
+
+	var user models.User
+	err = row.Scan(&user.ID, &user.Email, &user.Username, &user.IsAdmin)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.User{}, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
+		}
+
+		return models.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return user, nil
+}
+
 // IsAdmin checks if user is admin
 func (s *Storage) IsAdmin(ctx context.Context, userID int64) (bool, error) {
 	const op = "storage.sqlite.IsAdmin"
